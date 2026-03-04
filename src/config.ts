@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = `# bag configuration
 # KaLM-Embedding-Gemma3-12B-2511 (MTEB #1)
 model_path = ""                  # Auto-downloaded GGUF model path (~/.bag/models/)
 model_url = "https://huggingface.co/mradermacher/KaLM-Embedding-Gemma3-12B-2511-GGUF/resolve/main/KaLM-Embedding-Gemma3-12B-2511.Q8_0.gguf"
-embedding_dimension = 512        # MRL dimension (full=3840, options: 3840/2048/1024/512/256/128/64)
+embedding_dimension = 1024       # MRL dimension (full=3840, options: 3840/2048/1024/512/256/128/64)
 
 [extraction]
 twitter_bearer_token = ""        # Optional: for Twitter/X extraction

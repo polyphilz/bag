@@ -2,9 +2,14 @@ import { Database } from "bun:sqlite";
 import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { join, dirname } from "path";
+import * as sqliteVec from "sqlite-vec";
 import { getDbPath } from "../config.js";
-import { FTS_SETUP_SQL } from "./schema.js";
+import { FTS_SETUP_SQL, VEC_SETUP_SQL } from "./schema.js";
 import * as schema from "./schema.js";
+
+// Bun's bundled SQLite doesn't support loadExtension().
+// Use Homebrew SQLite which has extension loading enabled.
+Database.setCustomSQLite("/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib");
 
 const MIGRATIONS_DIR = join(dirname(new URL(import.meta.url).pathname), "migrations");
 
@@ -27,6 +32,10 @@ export function getDb(): BunSQLiteDatabase<typeof schema> {
 
   // FTS5 virtual table + triggers (not expressible in Drizzle schema)
   sqlite.run(FTS_SETUP_SQL);
+
+  // sqlite-vec extension + chunks_vec virtual table
+  sqliteVec.load(sqlite);
+  sqlite.run(VEC_SETUP_SQL);
 
   _db = db;
   _sqlite = sqlite;

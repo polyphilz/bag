@@ -2,13 +2,20 @@ import { type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import type * as schema from "../db/schema.js";
 import { SourceType, SourceStatus } from "../db/schema.js";
 import { getSource, updateSource } from "../db/queries/sources.js";
-import { insertChunks, deleteChunksForSource } from "../db/queries/chunks.js";
+import {
+  insertChunks,
+  deleteChunksForSource,
+  insertChunkVectors,
+  deleteChunkVectorsForSource,
+} from "../db/queries/chunks.js";
 import { extractFile, detectFileKind } from "./extract.js";
 import { chunkText } from "./chunk.js";
+import type { EmbeddingProvider } from "./embeddings.js";
 
 export async function processSource(
   db: BunSQLiteDatabase<typeof schema>,
-  sourceId: string
+  sourceId: string,
+  embedder: EmbeddingProvider
 ): Promise<void> {
   const source = getSource(db, sourceId);
   if (!source) {
@@ -43,8 +50,15 @@ export async function processSource(
       contentType,
     });
 
+    deleteChunkVectorsForSource(db, sourceId);
     deleteChunksForSource(db, sourceId);
-    insertChunks(db, sourceId, chunks);
+    const chunkIds = insertChunks(db, sourceId, chunks);
+
+    if (chunks.length > 0) {
+      const texts = chunks.map((c) => c.content);
+      const embeddings = await embedder.embed(texts, "document");
+      insertChunkVectors(db, chunkIds, embeddings);
+    }
 
     updateSource(db, sourceId, {
       status: SourceStatus.PROCESSED,

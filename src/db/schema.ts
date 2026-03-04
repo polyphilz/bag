@@ -140,3 +140,14 @@ CREATE TRIGGER IF NOT EXISTS chunks_au AFTER UPDATE ON chunks BEGIN
   INSERT INTO chunks_fts(rowid, content) VALUES (NEW.rowid, NEW.content);
 END;
 `;
+
+// --- sqlite-vec ---
+// chunks_vec virtual table for vector similarity search.
+// Created via raw SQL in connection.ts after migrations + FTS setup.
+
+export const VEC_SETUP_SQL = `
+CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
+  chunk_id TEXT PRIMARY KEY,
+  embedding float[1024]
+);
+`;
