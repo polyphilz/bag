@@ -7,6 +7,8 @@ import { getDb } from "./db/connection.js";
 import { createSource, getSourceByUri, listSources } from "./db/queries/sources.js";
 import { JobQueue } from "./db/queries/jobs.js";
 import { SourceType, Platform, JobType } from "./db/schema.js";
+import { loadConfig } from "./config.js";
+import { runWorkerPool } from "./worker/pool.js";
 
 function detectPlatform(url: string): Platform {
   try {
@@ -68,6 +70,7 @@ program
       platform: platform ?? null,
     });
     console.log(`Added ${sourceType}: ${resolvedUri}`);
+    console.log("Run 'bag process' to process the queue.");
   });
 
 program
@@ -118,6 +121,22 @@ program
     console.log(`  running:   ${stats.RUNNING}`);
     console.log(`  completed: ${stats.COMPLETED}`);
     console.log(`  failed:    ${stats.FAILED}`);
+  });
+
+program
+  .command("process")
+  .description("Process pending jobs in the queue")
+  .option("-w, --watch", "Keep running and poll for new jobs")
+  .option("-c, --concurrency <n>", "Max parallel jobs", parseInt)
+  .action(async (opts) => {
+    const db = getDb();
+    const { config } = loadConfig();
+
+    await runWorkerPool(db, {
+      concurrency: opts.concurrency ?? config.processing?.concurrency ?? 8,
+      pollIntervalMs: 2000,
+      watch: opts.watch ?? false,
+    });
   });
 
 program.parse();

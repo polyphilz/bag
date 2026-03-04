@@ -1,5 +1,5 @@
 import { type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
-import { eq, and, desc, type SQL } from "drizzle-orm";
+import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import { ulid } from "ulidx";
 import { sources, type SourceType, type Platform } from "../schema.js";
 import type * as schema from "../schema.js";
@@ -56,4 +56,30 @@ export function listSources(
   }
 
   return query.all();
+}
+
+export function getSource(
+  db: BunSQLiteDatabase<typeof schema>,
+  id: string
+): Source | undefined {
+  return db.select().from(sources).where(eq(sources.id, id)).get();
+}
+
+export function updateSource(
+  db: BunSQLiteDatabase<typeof schema>,
+  id: string,
+  data: {
+    status?: string;
+    rawContent?: string;
+    title?: string;
+    contentHash?: string;
+    fileMtime?: number;
+    errorMessage?: string | null;
+    processedAt?: string | null;
+  }
+): void {
+  db.update(sources)
+    .set({ ...data, updatedAt: sql`datetime('now')` })
+    .where(eq(sources.id, id))
+    .run();
 }
